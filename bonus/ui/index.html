@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Monitor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #0f0f0f; color: #e0e0e0; padding: 2rem; }
+    h1   { font-size: 1.2rem; color: #7eb8f7; margin-bottom: 1.5rem; letter-spacing: 0.1em; }
+    .controls { display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem; }
+    label { font-size: 0.85rem; color: #888; }
+    input[type=number] {
+      width: 60px; background: #1a1a1a; border: 1px solid #333;
+      color: #e0e0e0; padding: 0.4rem; border-radius: 4px; font-family: monospace;
+    }
+    button {
+      padding: 0.5rem 1.5rem; background: #1e4d8c; border: none; border-radius: 4px;
+      color: #fff; font-family: monospace; font-size: 0.9rem; cursor: pointer;
+    }
+    button:hover  { background: #2a62b0; }
+    button:active { background: #163d72; }
+    #status { font-size: 0.8rem; color: #888; min-height: 1.2rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th { text-align: left; color: #7eb8f7; border-bottom: 1px solid #333; padding: 0.4rem 0.8rem; }
+    td { padding: 0.4rem 0.8rem; border-bottom: 1px solid #1a1a1a; }
+    .pass { color: #4caf50; }
+    .fail { color: #f44336; }
+  </style>
+</head>
+<body>
+  <h1>AUDIO MONITOR</h1>
+
+  <div class="controls">
+    <label>Duration (s) <input type="number" id="duration" value="5" min="1" max="60" /></label>
+    <button onclick="triggerRecording()">Record Now</button>
+    <span id="status"></span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>File</th>
+        <th>RMS (dBFS)</th>
+        <th>Peak (Hz)</th>
+        <th>Delta (dB)</th>
+        <th>Baseline</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <script>
+    const API_BASE = "http://localhost:8000";
+
+    async function triggerRecording() {
+      const duration = Number(document.getElementById("duration").value);
+      setStatus(`Recording ${duration}s...`);
+      try {
+        const res = await fetch(`${API_BASE}/trigger`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ duration }),
+        });
+        const data = await res.json();
+        setStatus(res.ok ? `Saved: ${data.file}` : `Error: ${data.detail}`);
+      } catch (e) {
+        setStatus(`Request failed: ${e.message}`);
+      }
+    }
+
+    function setStatus(msg) {
+      document.getElementById("status").textContent = msg;
+    }
+
+    // Poll the Grafana/Postgres API is not directly accessible from the UI —
+    // wire this up to your API's GET /measurements endpoint once you add it.
+    // For now, open Grafana at http://localhost:3000 to see live data.
+  </script>
+</body>
+</html>
