@@ -28,7 +28,7 @@ PostgreSQL                  ← single table: measurements
 Grafana                     ← live dashboard at http://localhost:3000
 ```
 
-The four Docker services (audio-worker, postgres, grafana, and an optional API) are defined in `docker-compose.yml` — that file is the map of the whole system. The `recordings/` folder is the handoff point between your host machine and the Docker containers. Everything else flows from there.
+The Docker services (audio-worker, postgres, grafana, plus an optional API and web UI for the bonus tasks) are defined in `docker-compose.yml` — that file is the map of the whole system. The `recordings/` folder is the handoff point between your host machine and the Docker containers. Everything else flows from there.
 
 ---
 
@@ -55,7 +55,9 @@ pip install sounddevice numpy
 python recorder/record.py --duration 5 --output ./recordings
 ```
 
-If you do not have a suitable microphone, any mono WAV file will work as a functional test — the processor will still run and the pipeline will still exercise itself. You can generate a test tone with tools like Audacity or SoX, or find a sample online.
+The recorder defaults to 48 kHz, which any standard mic supports. If you have the 384 kHz ultrasonic USB mic, add `--rate 384000`.
+
+If you do not have a suitable microphone, two sample ultrasonic recordings (`recordings/noisy.wav` and `recordings/quiet.wav`) are included in the repository — drop either one into `recordings/` and the pipeline will exercise itself. Any other mono WAV file works too.
 
 **Watch the worker pick it up:**
 
@@ -96,6 +98,16 @@ Open `audio-worker/processor/wav_processor.cpp`. The file is short and the top s
 - `peak_frequency_hz` — the dominant frequency in the signal, detected via a Fourier transform. For an ultrasonic recording this might be 40 kHz; for a normal recording it will be in the audible range.
 - `baseline_delta_db` — how far the current RMS is from a reference baseline. If no baselines file is provided, output `0.0`.
 - `passed_baseline` — `true` if the delta is within an acceptable range (a reasonable threshold is ±6 dB), `false` otherwise. If there is no baseline, output `true`.
+
+**The baselines file** (`argv[2]`) is a JSON object containing the reference RMS level:
+
+```json
+{
+  "rms_db": -20.0
+}
+```
+
+Compute `baseline_delta_db` as the current `rms_db` minus this reference, and set `passed_baseline` to `true` when `|baseline_delta_db| ≤ 6 dB`. If `argv[2]` is not given, output a delta of `0.0` and `passed_baseline: true`. An example file ships in the worker image at `/app/baselines.json` (see `audio-worker/baselines.json`), so the worker passes it on every call.
 
 **On libraries:** you are free to use any C++ libraries that help. Some useful ones:
 
@@ -170,11 +182,13 @@ These are optional extensions. They are not required, but each one teaches you s
 
 ### Bonus 1 — Trigger API
 
-The `bonus/api/` folder contains the start of a FastAPI service. It already has a working `POST /trigger` endpoint that fires a recording.
+The `bonus/api/` folder contains the start of a FastAPI service. It already has a working `POST /trigger` endpoint that generates a test-tone WAV into the shared `recordings/` volume (the container has no microphone — real recordings still come from `recorder/record.py` on the host).
 
 Uncomment the `api` service block in `docker-compose.yml` to enable it, then rebuild.
 
 Your task: add a `GET /measurements` endpoint that reads the most recent rows from the `measurements` table and returns them as JSON. This endpoint will be called by the bonus UI.
+
+Hint: the API container does not yet have any way to talk to the database. Look at how the audio-worker gets its database connection — you will need to give the `api` service the same kind of access (an environment variable in `docker-compose.yml` and a database client in `bonus/api/requirements.txt`).
 
 ---
 
@@ -190,7 +204,7 @@ Your task: wire up the `GET /measurements` endpoint (from Bonus 1) so that the t
 
 Invent something. Some directions:
 
-- Add a new computed metric to the C++ processor (e.g. spectral centroid, crest factor, or total harmonic distortion). Add a column to the `measurements` table, thread the value through the worker, and build a Grafana panel for it.
+- Add a new computed metric to the C++ processor (e.g. spectral centroid, crest factor, or total harmonic distortion). Add a column to the `measurements` table, thread the value through the worker, and build a Grafana panel for it. Note that `db/init.sql` only runs when the Postgres volume is created from scratch — to apply a schema change you either need `docker compose down -v` (wipes data) or a manual `ALTER TABLE` via psql.
 - Make the baseline threshold configurable — right now it is hardcoded. Move it into the environment or expose it through the API.
 - Instrument the worker with timing: how long does the processor take per file? Log it and store it.
 
@@ -217,7 +231,7 @@ Changes to Python or C++ source files require a rebuild (`--build`) because the 
 - `docker compose exec <service> bash` gives you a shell inside a running container. Useful for inspecting files, running commands, or checking that a binary exists where you expect it.
 - `docker compose exec postgres psql -U postgres -d measurements` connects you directly to the database. Always verify data at the source rather than trusting what the UI shows you.
 - `docker compose up --build audio-worker` rebuilds and restarts only the worker service, without touching postgres or grafana. Faster than a full rebuild when you are iterating on C++ changes.
-- `docker compose down -v` tears down everything and wipes all data volumes. Useful when you want a completely clean state. Be aware that it deletes your measurement history.
+- `docker compose down -v` tears down everything and wipes all data volumes. Useful when you want a completely clean state. Be aware that it deletes your measurement history. It is also the only way to get `db/init.sql` to run again — that script only executes on a fresh Postgres volume.
 
 ---
 

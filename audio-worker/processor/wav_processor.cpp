@@ -2,7 +2,9 @@
 //
 // Interface contract
 //   argv[1]  path to the WAV file to analyse
-//   argv[2]  (optional) path to a baselines JSON file
+//   argv[2]  (optional) path to a baselines JSON file:
+//            { "rms_db": -20.0 }  — the reference RMS level in dBFS.
+//            baseline_delta_db = current rms_db − reference; pass if |delta| ≤ 6 dB.
 //
 //   stdout   one JSON object (single line), exit 0 on success
 //   stderr   human-readable error message,  exit 1 on failure

@@ -46,13 +46,13 @@ You should work on your own copy of this repository, not the original. That way 
 
 **1. Fork the repository**
 
-Go to the repository page on GitHub and click the **Fork** button (top-right corner). GitHub will create a copy under your own account (e.g. `github.com/<your-username>/go2w_data_server`).
+Go to the repository page on GitHub and click the **Fork** button (top-right corner). GitHub will create a copy under your own account (e.g. `github.com/<your-username>/intro-project`).
 
 **2. Clone your fork**
 
 ```bash
-git clone https://github.com/<your-username>/go2w_data_server.git
-cd go2w_data_server/introduction-project
+git clone https://github.com/<your-username>/intro-project.git
+cd intro-project
 ```
 
 Replace `<your-username>` with your GitHub username. This downloads your fork to your machine and sets `origin` to point at it, so `git push` goes to your copy.
@@ -60,7 +60,7 @@ Replace `<your-username>` with your GitHub username. This downloads your fork to
 **3. Keep a link to the original (optional but recommended)**
 
 ```bash
-git remote add upstream https://github.com/Achilleas-Pappas/go2w_data_server.git
+git remote add upstream https://github.com/Achilleas-Pappas/intro-project.git
 ```
 
 This lets you pull in future updates from the original with:
@@ -91,6 +91,8 @@ pip install sounddevice numpy
 python recorder/record.py --duration 5 --output ./recordings
 ```
 
+The recorder defaults to 48 kHz, which works with any standard microphone. If you have the 384 kHz ultrasonic USB mic, add `--rate 384000`.
+
 The worker picks up the file automatically within a few seconds.
 
 If you do not have a microphone handy, drop any mono WAV file into the `recordings/` folder and the pipeline will process it.
@@ -118,7 +120,8 @@ Read [`Assignment.md`](Assignment.md). It describes the project goals, the tasks
 | `audio-worker` | Polls `recordings/` for WAV files, runs the C++ processor, writes to DB | — |
 | `postgres` | Stores measurement results in a single `measurements` table | 5432 |
 | `grafana` | Live dashboard, auto-provisioned with the measurements datasource | 3000 |
-| `api` *(optional)* | FastAPI trigger endpoint — uncomment in `docker-compose.yml` to enable | 8000 |
+| `api` *(optional)* | FastAPI trigger endpoint — generates a test-tone WAV into `recordings/`; uncomment in `docker-compose.yml` to enable | 8000 |
+| `ui` *(optional)* | Static web UI (nginx) with a *Record Now* button that calls the API; uncomment in `docker-compose.yml` to enable | 5173 |
 
 ---
 

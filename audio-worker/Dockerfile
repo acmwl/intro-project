@@ -11,6 +11,9 @@ RUN cmake -B build -DCMAKE_BUILD_TYPE=Release \
 
 FROM python:3.11-slim
 
+# Unbuffered stdout so `docker compose logs -f` shows worker output live
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -18,5 +21,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --from=builder /build/build/wav_processor ./wav_processor
 COPY worker.py .
+COPY baselines.json .
 
 CMD ["python", "worker.py"]
