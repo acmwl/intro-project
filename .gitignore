@@ -1,0 +1,25 @@
+# Internal reviewer material — never ship to candidates
+# (CLAUDE.md references the intentional flaws and REVIEWER_NOTES.md)
+REVIEWER_NOTES.md
+CLAUDE.md
+
+# Recordings are runtime data, not source
+recordings/*.wav
+recordings/processed/
+!recordings/.gitkeep
+# Sample files for mic-free testing — these are source assets, not runtime data
+!recordings/noisy.wav
+!recordings/quiet.wav
+
+# Editor / OS state
+.vscode/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Local C++ build output (the real build happens inside Docker)
+build/
